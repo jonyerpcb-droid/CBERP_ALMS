@@ -12,15 +12,17 @@ import { Button } from "@/components/ui/button";
 const filters = ["all", "pending", "approved", "rejected", "cancelled"];
 
 export default function MyLeavesPage() {
+
+  // ✅ ALL HOOKS FIRST
   const { employee, isLoading: authLoading, primaryRole } = useAuth();
   const [status, setStatus] = useState("all");
 
-  // Always define employeeId so hook always runs
   const employeeId = employee?.id ?? "";
 
-  // Hook MUST always run
-  const { data: leaves, isLoading } = useMyLeaves(employeeId, status);
+  const { data: leaves, isLoading: leavesLoading } =
+    useMyLeaves(employeeId, status);
 
+  // ✅ AFTER HOOKS YOU CAN RETURN
   if (authLoading) {
     return <LoadingSpinner />;
   }
@@ -55,7 +57,7 @@ export default function MyLeavesPage() {
         ))}
       </div>
 
-      {isLoading ? (
+      {leavesLoading ? (
         <LoadingSpinner />
       ) : leaves && leaves.length > 0 ? (
         <LeaveHistoryTable leaves={leaves} />
