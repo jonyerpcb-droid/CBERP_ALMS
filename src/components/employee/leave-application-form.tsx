@@ -13,24 +13,12 @@ import { daysBetween } from "@/lib/utils";
 import { Loader2, Send } from "lucide-react";
 import toast from "react-hot-toast";
 
-// 1. Defined the type locally to ensure TypeScript recognizes the structure
-export type LeaveRequest = {
-  employee_id: string | number;
-  leave_type_id: string;
-  start_date: string;
-  end_date: string;
-  is_half_day: boolean;
-  half_day_type: string | null;
-  total_days: number;
-  reason: string;
-};
-
 export function LeaveApplicationForm() {
   const router = useRouter();
   const { employee } = useAuthStore();
-  const { data: leaveTypes } = useLeaveTypes();
   
-  // applyLeave is the mutation object returned by your custom hook
+  // ✅ Data fetching via hook
+  const { data: leaveTypes, isLoading: loadingTypes } = useLeaveTypes();
   const applyLeave = useApplyLeave();
 
   const [form, setForm] = useState({
@@ -53,7 +41,7 @@ export function LeaveApplicationForm() {
     e.preventDefault();
     
     if (!employee) {
-      toast.error("User not authenticated");
+      toast.error("User not authenticated. Please log in again.");
       return;
     }
 
@@ -62,8 +50,6 @@ export function LeaveApplicationForm() {
       return;
     }
 
-    // 2. We use mutateAsync and pass the object. 
-    // The "void" error happens if useApplyLeave hook isn't typed.
     try {
       await applyLeave.mutateAsync({
         employee_id: employee.id,
@@ -71,12 +57,12 @@ export function LeaveApplicationForm() {
         start_date: form.start_date,
         end_date: form.end_date,
         is_half_day: form.is_half_day,
-        half_day_type: form.is_half_day ? form.half_day_type : null,
+        half_day_type: form.is_half_day ? (form.half_day_type || "first_half") : null,
         total_days: totalDays,
         reason: form.reason,
       });
 
-      toast.success("Application submitted!");
+      toast.success("Application submitted successfully!");
       router.push("/employee/my-leaves");
     } catch (error: any) {
       toast.error(error.message || "Failed to submit application");
@@ -84,7 +70,7 @@ export function LeaveApplicationForm() {
   };
 
   return (
-    <Card className="max-w-2xl">
+    <Card className="max-w-2xl border-primary/10 shadow-lg">
       <CardHeader>
         <CardTitle>Apply for Leave</CardTitle>
       </CardHeader>
@@ -95,11 +81,13 @@ export function LeaveApplicationForm() {
             <select
               value={form.leave_type_id}
               onChange={(e) => setForm({ ...form, leave_type_id: e.target.value })}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary"
               required
+              disabled={loadingTypes}
             >
-              <option value="">Select</option>
-              {leaveTypes?.map((lt: { id: string; name: string }) => (
+              <option value="">{loadingTypes ? "Loading types..." : "Select Leave Type"}</option>
+              {/* ✅ Added Array.isArray check to prevent crash */}
+              {Array.isArray(leaveTypes) && leaveTypes.map((lt: any) => (
                 <option key={lt.id} value={lt.id}>
                   {lt.name}
                 </option>
@@ -129,10 +117,11 @@ export function LeaveApplicationForm() {
             </div>
           </div>
 
-          <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+          <div className="flex items-center space-x-2 pt-2">
             <input
               type="checkbox"
-              className="rounded border-gray-300"
+              id="half-day"
+              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
               checked={form.is_half_day}
               onChange={(e) =>
                 setForm({
@@ -142,34 +131,44 @@ export function LeaveApplicationForm() {
                 })
               }
             />
-            Half Day
-          </label>
+            <Label htmlFor="half-day" className="cursor-pointer">Request Half Day</Label>
+          </div>
 
           {totalDays > 0 && (
-            <div className="rounded-lg bg-primary/10 p-3 text-center border border-primary/20">
-              <p className="text-sm text-muted-foreground">Total Duration</p>
-              <p className="text-lg font-bold text-primary">{totalDays} day(s)</p>
+            <div className="rounded-lg bg-primary/5 p-4 text-center border border-primary/10">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Total Days</p>
+              <p className="text-2xl font-bold text-primary">{totalDays}</p>
             </div>
           )}
 
           <div className="space-y-2">
-            <Label>Reason</Label>
+            <Label>Reason for Leave</Label>
             <Textarea
-              placeholder="Please provide a reason for your leave..."
+              placeholder="Briefly explain the reason for your request..."
               value={form.reason}
               onChange={(e) => setForm({ ...form, reason: e.target.value })}
               rows={3}
+              className="resize-none"
             />
           </div>
         </CardContent>
         <CardFooter>
-          <Button type="submit" className="w-full" disabled={applyLeave.isPending}>
+          <Button 
+            type="submit" 
+            className="w-full" 
+            disabled={applyLeave.isPending || loadingTypes}
+          >
             {applyLeave.isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Submitting...
+              </>
             ) : (
-              <Send className="mr-2 h-4 w-4" />
+              <>
+                <Send className="mr-2 h-4 w-4" />
+                Submit Application
+              </>
             )}
-            {applyLeave.isPending ? "Submitting..." : "Submit Application"}
           </Button>
         </CardFooter>
       </form>

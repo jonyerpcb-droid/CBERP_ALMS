@@ -7,4 +7,5 @@ export default function ApplyLeavePage() {
       <LeaveApplicationForm />
     </div>
   );
+  
 }

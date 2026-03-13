@@ -1,4 +1,3 @@
-// src/app/(dashboard)/employee/my-leaves/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -12,32 +11,27 @@ import { Button } from "@/components/ui/button";
 const filters = ["all", "pending", "approved", "rejected", "cancelled"];
 
 export default function MyLeavesPage() {
-
-  // ✅ ALL HOOKS FIRST
   const { employee, isLoading: authLoading, primaryRole } = useAuth();
   const [status, setStatus] = useState("all");
 
   const employeeId = employee?.id ?? "";
 
-  const { data: leaves, isLoading: leavesLoading } =
-    useMyLeaves(employeeId, status);
+  // The 'leaves' variable here is what's likely causing the .filter error elsewhere
+  const { data: leaves, isLoading: leavesLoading } = useMyLeaves(employeeId, status);
 
-  // ✅ AFTER HOOKS YOU CAN RETURN
   if (authLoading) {
     return <LoadingSpinner />;
   }
 
-  if (primaryRole() !== "employee") {
+  // ✅ Fix 1: Add a check for 'employee' before checking the role
+  // This prevents errors if 'employee' is null during the initial load
+  if (!employee || primaryRole() !== "employee") {
     return (
       <EmptyState
         title="Access Restricted"
         description="This page is only available for employees."
       />
     );
-  }
-
-  if (!employee?.id) {
-    return <LoadingSpinner />;
   }
 
   return (
@@ -59,12 +53,13 @@ export default function MyLeavesPage() {
 
       {leavesLoading ? (
         <LoadingSpinner />
-      ) : leaves && leaves.length > 0 ? (
+      ) : /* ✅ Fix 2: Defensive check for 'leaves' array */
+        Array.isArray(leaves) && leaves.length > 0 ? (
         <LeaveHistoryTable leaves={leaves} />
       ) : (
         <EmptyState
           title="No leaves found"
-          description="You haven't taken any leaves yet."
+          description="You haven't taken any leaves yet or there was an error loading them."
         />
       )}
     </div>

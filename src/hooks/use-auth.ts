@@ -1,16 +1,16 @@
 "use client";
+import { supabase } from "@/lib/supabase/client";
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/store/auth-store";
 import { authService } from "@/services/auth.service";
 import { ROUTES } from "@/lib/constants";
 
+
 export function useAuth() {
   const router = useRouter();
   const store = useAuthStore();
-  const supabase = createClient();
 
   useEffect(() => {
     const init = async () => {

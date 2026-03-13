@@ -1,7 +1,7 @@
-import { createClient } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/client";
 import type { Holiday } from "@/types";
 
-const supabase = createClient();
+
 
 export const holidayService = {
   async getAll(year?: number) {

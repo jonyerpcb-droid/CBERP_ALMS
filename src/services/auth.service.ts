@@ -1,14 +1,22 @@
-import { createClient } from "@/lib/supabase/client";
-import type { Employee, RoleType } from "@/types";
-
-const supabase = createClient();
+import { supabase } from "@/lib/supabase/client";
 
 export const authService = {
-  async login(email: string, password: string) {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+  // ✅ Add this function:
+  async getCurrentEmployee() {
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return null;
+
+    const { data, error } = await supabase
+      .from('employees')
+      .select(`
+        *,
+        department:departments(*),
+        designation:designations(*),
+        roles:employee_roles(*)
+      `)
+      .eq('auth_user_id', user.id)
+      .single();
+
     if (error) throw error;
     return data;
   },
@@ -18,46 +26,7 @@ export const authService = {
     if (error) throw error;
   },
 
-  async forgotPassword(email: string) {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/reset-password`,
-    });
-    if (error) throw error;
-  },
-
-  async resetPassword(password: string) {
-    const { error } = await supabase.auth.updateUser({ password });
-    if (error) throw error;
-  },
-
-  async getCurrentEmployee(): Promise<Employee | null> {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return null;
-
-    const { data } = await supabase
-      .from("employees")
-      .select(
-        `*, department:departments(*), designation:designations(*), roles:employee_roles(*)`
-      )
-      .eq("auth_user_id", user.id)
-      .single();
-
-    return data;
-  },
-
-  async getCurrentRoles(): Promise<RoleType[]> {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return [];
-
-    const { data } = await supabase
-      .from("employee_roles")
-      .select("role, employees!inner(auth_user_id)")
-      .eq("employees.auth_user_id", user.id);
-
-    return data?.map((r: any) => r.role) || [];
-  },
+  async signOut() {
+    return this.logout();
+  }
 };

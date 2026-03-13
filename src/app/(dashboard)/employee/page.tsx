@@ -12,7 +12,7 @@ import { LeaveBalanceCards } from "@/components/employee/leave-balance-cards";
 export default function EmployeeDashboard() {
   const { employee } = useAuth();
   const { data: balances, isLoading: lb } = useLeaveBalances(employee?.id || "");
-  const { data: leaves, isLoading: ll } = useMyLeaves(employee?.id || "");
+  const { data: leaves, isLoading: ll } = useMyLeaves(employee?.id || "","all");
 
   if (lb || ll) return <LoadingSpinner />;
 
